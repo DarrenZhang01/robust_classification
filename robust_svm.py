@@ -43,6 +43,8 @@ b = SVM.addVar(vtype=GRB.CONTINUOUS, obj=0)
 
 SVM.modelSense = GRB.MINIMIZE
 
-SVM.addConstrs([Y_train[i] * (sum([W[j] * X_train[i][j] for j in range(NUM_FEATURES)]) - b) - sum([W[k] * W[k] for k in range(NUM_FEATURES)]) >= 1 - itas[i] for i in range(NUM_DATA)])
+SVM.addConstrs([Y_train[i] * (sum([W[j] * X_train[i][j] for j in \
+               range(NUM_FEATURES)]) - b) - sum([W[k] * W[k] for k in \
+               range(NUM_FEATURES)]) >= 1 - itas[i] for i in range(NUM_DATA)])
 
 SVM.optimize()
