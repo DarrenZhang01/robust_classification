@@ -11,6 +11,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from sklearn import datasets
+from sklearn.metrics import hinge_loss
 from gurobipy import *
 #
 # (X_train, Y_train), (X_test, Y_test) = keras.datasets.mnist.load_data(path="mnist.npz")
@@ -57,3 +58,12 @@ for i in range(NUM_DATA):
                   range(NUM_FEATURES)]) >= 1 - itas[i])
 
 SVM.optimize()
+
+print("W: {}".format(W))
+print("b: {}".format(b))
+
+W_np = np.reshape(np.array([W[0].x, W[1].x, W[2].x, W[3].x]), (4, 1))
+Y_pred = X @ W_np + b.x
+
+loss = hinge_loss(Y, Y_pred)
+print("the overall training loss is: {}".format(loss))
