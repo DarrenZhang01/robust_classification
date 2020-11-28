@@ -58,7 +58,7 @@ SVM = Model("robust_svm")
 
 itas = SVM.addVars(range(NUM_DATA), vtype=GRB.CONTINUOUS, obj=[0.0005]*NUM_DATA)
 W = SVM.addVars(range(NUM_FEATURES), lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, obj=[0]*NUM_FEATURES)
-b = SVM.addVar(vtype=GRB.CONTINUOUS, obj=0)
+b = SVM.addVar(vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, obj=0)
 
 SVM.modelSense = GRB.MINIMIZE
 
