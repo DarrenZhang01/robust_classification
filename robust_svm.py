@@ -43,7 +43,7 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3)
 
 
 print(X_train.shape)
-print(Y)
+print(Y_train)
 
 
 NUM_DATA = 105
@@ -54,15 +54,15 @@ NUM_FEATURES = 4
 
 SVM = Model("robust_svm")
 
-itas = SVM.addVars(range(NUM_DATA), vtype=GRB.CONTINUOUS, obj=[1]*NUM_DATA)
-W = SVM.addVars(range(NUM_FEATURES), vtype=GRB.CONTINUOUS, obj=[0]*NUM_FEATURES)
+itas = SVM.addVars(range(NUM_DATA), vtype=GRB.CONTINUOUS, obj=[0.0005]*NUM_DATA)
+W = SVM.addVars(range(NUM_FEATURES), lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, obj=[0]*NUM_FEATURES)
 b = SVM.addVar(vtype=GRB.CONTINUOUS, obj=0)
 
 SVM.modelSense = GRB.MINIMIZE
 
 for i in range(NUM_DATA):
     SVM.addConstr(Y_train[i] * (quicksum([W[j] * X_train[i][j] for j in \
-                  range(NUM_FEATURES)]) - b) - quicksum([W[k] * W[k] for k in \
+                  range(NUM_FEATURES)]) - b) - 0.0 * quicksum([W[k] * W[k] for k in \
                   range(NUM_FEATURES)]) >= 1 - itas[i])
 
 SVM.optimize()
@@ -71,7 +71,8 @@ print("W: {}".format(W))
 print("b: {}".format(b))
 
 W_np = np.reshape(np.array([W[0].x, W[1].x, W[2].x, W[3].x]), (4, 1))
-Y_pred = X_test @ W_np + b.x
+Y_pred = X_test @ W_np - b.x
+print("Y_pred: {}".format(Y_pred))
 
 loss = hinge_loss(Y_test, Y_pred)
 print("the overall test loss for Robust SVM: {}".format(loss))
