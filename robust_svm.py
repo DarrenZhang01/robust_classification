@@ -15,6 +15,8 @@ from sklearn.metrics import hinge_loss
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from gurobipy import *
+
+np.random.seed(100)
 #
 # (X_train, Y_train), (X_test, Y_test) = keras.datasets.mnist.load_data(path="mnist.npz")
 #
