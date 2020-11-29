@@ -39,13 +39,27 @@ D = model.addVars(range(K), vtype=GRB.BINARY, obj=[-l for l in lambda_])
 # Variable Z to track which leaf node k at each data point in the training set is assigned.
 Z = model.addVars(range(NUM_DATA), range(K), vtype=GRB.BINARY, obj=0)
 # Use A and B to set splits for the tree.
-A = model.addVars(range(K), lb=-GRB.INFINITY, range(4), vtype=GRB.BINARY, obj=0)
+A = model.addVars(range(K), range(4), lb=-GRB.INFINITY, vtype=GRB.BINARY, obj=0)
 B = model.addVars(range(K), lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, obj=0)
 # Use G and H to count the number of points of the two labels in each node K.
 G = model.addVars(range(K), vtype=GRB.INTEGER, obj=0)
 H = model.addVars(range(K), vtype=GRB.INTEGER, obj=0)
+# Add binary variables W, C
+W = model.addVars(range(K), vtype=GRB.BINARY, obj=0)
+C = model.addVars(range(K), vtype=GRB.BINARY, obj=0)
+
 
 model.modelSense = GRB.MINIMIZE
 
 model.addConstrs(G[k] == quicksum([(1 - Y_train[i]) * Z[i][k] / 2 for i in range(NUM_DATA)]) for k in range(K))
 model.addConstrs(H[k] == quicksum([(1 + Y_train[i]) * Z[i][k] / 2 for i in range(NUM_DATA)]) for k in range(K))
+
+model.addConstrs(F[k] <= G[k] + NUM_DATA * (W[k] + (1 - C[k])) for k in range(K))
+model.addConstrs(F[k] <= H[k] + NUM_DATA * (1 - W[k] + 1 - C[k]) for k in range(K))
+model.addConstrs(F[k] >= G[k] - NUM_DATA * (1 - W[k] + 1 - C[k]) for k in range(K))
+model.addConstrs(F[k] >= H[k] - NUM_DATA * (W[k] + 1 - C[k]))
+# The D value for the leave nodes must be equal to 1.
+model.addConstrs(D[k] == 1 for k in range(math.floor(K / 2), K))
+model.addConstrs(D[k] <= D[j] for k in [3, 4] for j in [0, 1])
+model.addConstrs(D[k] <= D[j] for k in [5, 6] for j in [0, 2])
+model.addConstrs(D[k] <= D[0] for k in [1, 2])
