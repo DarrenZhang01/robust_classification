@@ -64,3 +64,10 @@ model.addConstrs(D[k] == 1 for k in range(math.floor(K / 2), K))
 model.addConstrs(D[k] <= D[j] for k in [3, 4] for j in [0, 1])
 model.addConstrs(D[k] <= D[j] for k in [5, 6] for j in [0, 2])
 model.addConstrs(D[k] <= D[0] for k in [1, 2])
+
+# For the leaf nodes, the weights should be zero.
+model.addConstrs(D[k] + A.sum(k, "*") == 1 for k in range(K))
+# Each data point can only be assigned at a single leaf node.
+model.addConstrs(Z.sum(i, "*") == 1 for i in range(NUM_DATA))
+# Each data point cannot be assigned at the non-leaf nodes.
+model.addConstrs(Z[i][k] <= D[k] for i in range(NUM_DATA) for k in range(K))
