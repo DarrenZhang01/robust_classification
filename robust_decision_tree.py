@@ -49,5 +49,3 @@ model.modelSense = GRB.MINIMIZE
 
 model.addConstrs(G[k] == quicksum([(1 - Y_train[i]) * Z[i][k] / 2 for i in range(NUM_DATA)]) for k in range(K))
 model.addConstrs(H[k] == quicksum([(1 + Y_train[i]) * Z[i][k] / 2 for i in range(NUM_DATA)]) for k in range(K))
-
-model.addConstrs(F[k] <= G[k] + )
