@@ -95,5 +95,9 @@ model.addConstrs(Z[i][k] <= 1 - D[0] for i in range(NUM_DATA) for k in range(1, 
 counts = Counter(Y_train)
 model.addConstr(Z.sum('*', k) >= N * C[k] for k in range(K))
 model.addConstrs(C[k] == D[k] for k in range(K))
-model.addConstrs(A[j] @ X_train[i] + epsilon <= B[j] + NUM_DATA * (1 - Z[i][k]) for i in range(NUM_DATA) for j in find_all_parents(k)[0] for k in range(K))
-model.addConstrs(A[j] @ X_train[i] >= B[j] - NUM_DATA * (1 - Z[i][k]) for i in range(NUM_DATA) for j in find_all_parents(k)[1] for k in range(K))
+model.addConstrs(quicksum([A[j][f] * X_train[i][f] for f in range(4)]) + \
+                epsilon <= B[j] + NUM_DATA * (1 - Z[i][k]) for i in range(NUM_DATA) \
+                for j in find_all_parents(k)[0] for k in range(K))
+model.addConstrs(quicksum([A[j][f] * X_train[i][f] for f in range(4)]) >= \
+                B[j] - NUM_DATA * (1 - Z[i][k]) for i in range(NUM_DATA) \
+                for j in find_all_parents(k)[1] for k in range(K))
