@@ -66,13 +66,13 @@ C = model.addVars(range(K), vtype=GRB.BINARY, obj=0)
 
 model.modelSense = GRB.MINIMIZE
 
-model.addConstrs(G[k] == quicksum([(1 - Y_train[i]) * Z[i][k] / 2 for i in range(NUM_DATA)]) for k in range(K))
-model.addConstrs(H[k] == quicksum([(1 + Y_train[i]) * Z[i][k] / 2 for i in range(NUM_DATA)]) for k in range(K))
+model.addConstrs(G[k] == quicksum([(1 - Y_train[i]) * Z[i, k] / 2 for i in range(NUM_DATA)]) for k in range(K))
+model.addConstrs(H[k] == quicksum([(1 + Y_train[i]) * Z[i, k] / 2 for i in range(NUM_DATA)]) for k in range(K))
 
 model.addConstrs(F[k] <= G[k] + NUM_DATA * (W[k] + (1 - C[k])) for k in range(K))
 model.addConstrs(F[k] <= H[k] + NUM_DATA * (1 - W[k] + 1 - C[k]) for k in range(K))
 model.addConstrs(F[k] >= G[k] - NUM_DATA * (1 - W[k] + 1 - C[k]) for k in range(K))
-model.addConstrs(F[k] >= H[k] - NUM_DATA * (W[k] + 1 - C[k]))
+model.addConstrs(F[k] >= H[k] - NUM_DATA * (W[k] + 1 - C[k]) for k in range(K))
 # The D value for the leave nodes must be equal to 1.
 model.addConstrs(D[k] == 1 for k in range(math.floor(K / 2), K))
 # The child leaves must have D values less than or equal to their parents.
@@ -85,19 +85,21 @@ model.addConstrs(D[k] + A.sum(k, "*") == 1 for k in range(K))
 # Each data point can only be assigned at a single leaf node.
 model.addConstrs(Z.sum(i, "*") == 1 for i in range(NUM_DATA))
 # Each data point cannot be assigned at the non-leaf nodes.
-model.addConstrs(Z[i][k] <= D[k] for i in range(NUM_DATA) for k in range(K))
+# =============================================================================
+# model.addConstrs(Z[i][k] <= D[k] for i in range(NUM_DATA) for k inioc45 range(K))
+# =============================================================================
 
 
-model.addConstrs(Z[i][k] <= 1 - D[j] for i in range(NUM_DATA) for k in [3, 4] for j in [0, 1])
-model.addConstrs(Z[i][k] <= 1 - D[j] for i in range(NUM_DATA) for k in [5, 6] for j in [0, 2])
-model.addConstrs(Z[i][k] <= 1 - D[0] for i in range(NUM_DATA) for k in range(1, 2))
+model.addConstrs(Z[i, k] <= 1 - D[j] for i in range(NUM_DATA) for k in [3, 4] for j in [0, 1])
+model.addConstrs(Z[i, k] <= 1 - D[j] for i in range(NUM_DATA) for k in [5, 6] for j in [0, 2])
+model.addConstrs(Z[i, k] <= 1 - D[0] for i in range(NUM_DATA) for k in range(1, 2))
 
 counts = Counter(Y_train)
-model.addConstr(Z.sum('*', k) >= N * C[k] for k in range(K))
+model.addConstrs(Z.sum('*', k) >= N * C[k] for k in range(K))
 model.addConstrs(C[k] == D[k] for k in range(K))
-model.addConstrs(quicksum([A[j][f] * X_train[i][f] for f in range(4)]) + \
-                epsilon <= B[j] + NUM_DATA * (1 - Z[i][k]) for i in range(NUM_DATA) \
-                for j in find_all_parents(k)[0] for k in range(K))
-model.addConstrs(quicksum([A[j][f] * X_train[i][f] for f in range(4)]) >= \
-                B[j] - NUM_DATA * (1 - Z[i][k]) for i in range(NUM_DATA) \
-                for j in find_all_parents(k)[1] for k in range(K))
+model.addConstrs(quicksum([A[j, f] * X_train[i][f] for f in range(4)]) + \
+                epsilon <= B[j] + NUM_DATA * (1 - Z[i, k]) for i in range(NUM_DATA) \
+                for k in range(K) for j in find_all_parents(k)[0])
+model.addConstrs(quicksum([A[j, f] * X_train[i][f] for f in range(4)]) >= \
+                B[j] - NUM_DATA * (1 - Z[i, k]) for i in range(NUM_DATA) \
+                for k in range(K) for j in find_all_parents(k)[1])
