@@ -12,6 +12,7 @@ from tensorflow import keras
 from sklearn import datasets
 from sklearn.metrics import hinge_loss
 from sklearn.model_selection import train_test_split
+from collections import Counter
 from gurobipy import *
 
 np.random.seed(100)
@@ -27,6 +28,20 @@ NUM_DATA = 105
 K = 7
 # Specify the coefficients lambda for the variable d.
 lambda_ = [1] * K
+N = 10
+epsilon = 0.01
+
+def find_all_parents(node):
+    cur = node
+    left, right = [], []
+    while cur != 0:
+        r = (cur-1)%2
+        cur = (cur-1)//2
+        if r == 0:
+            left.append(cur)
+        else:
+            right.append(cur)
+    return left, right
 
 ##################### Use Gurobi to train a Robust SVM ########################
 
@@ -40,7 +55,7 @@ D = model.addVars(range(K), vtype=GRB.BINARY, obj=[-l for l in lambda_])
 Z = model.addVars(range(NUM_DATA), range(K), vtype=GRB.BINARY, obj=0)
 # Use A and B to set splits for the tree.
 A = model.addVars(range(K), range(4), lb=-GRB.INFINITY, vtype=GRB.BINARY, obj=0)
-B = model.addVars(range(K), lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, obj=0)
+B = model.addVars(range(K), lb=0, ub=1, vtype=GRB.CONTINUOUS, obj=0)
 # Use G and H to count the number of points of the two labels in each node K.
 G = model.addVars(range(K), vtype=GRB.INTEGER, obj=0)
 H = model.addVars(range(K), vtype=GRB.INTEGER, obj=0)
@@ -71,3 +86,14 @@ model.addConstrs(D[k] + A.sum(k, "*") == 1 for k in range(K))
 model.addConstrs(Z.sum(i, "*") == 1 for i in range(NUM_DATA))
 # Each data point cannot be assigned at the non-leaf nodes.
 model.addConstrs(Z[i][k] <= D[k] for i in range(NUM_DATA) for k in range(K))
+
+
+model.addConstrs(Z[i][k] <= 1 - D[j] for i in range(NUM_DATA) for k in [3, 4] for j in [0, 1])
+model.addConstrs(Z[i][k] <= 1 - D[j] for i in range(NUM_DATA) for k in [5, 6] for j in [0, 2])
+model.addConstrs(Z[i][k] <= 1 - D[0] for i in range(NUM_DATA) for k in range(1, 2))
+
+counts = Counter(Y_train)
+model.addConstr(Z.sum('*', k) >= N * C[k] for k in range(K))
+model.addConstrs(C[k] == D[k] for k in range(K))
+model.addConstrs(A[j] @ X_train[i] + epsilon <= B[j] + NUM_DATA * (1 - Z[i][k]) for i in range(NUM_DATA) for j in find_all_parents(k)[0] for k in range(K))
+model.addConstrs(A[j] @ X_train[i] >= B[j] - NUM_DATA * (1 - Z[i][k]) for i in range(NUM_DATA) for j in find_all_parents(k)[1] for k in range(K))
