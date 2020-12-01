@@ -75,10 +75,7 @@ model.addConstrs(F[k] >= G[k] - NUM_DATA * (1 - W[k] + 1 - C[k]) for k in range(
 model.addConstrs(F[k] >= H[k] - NUM_DATA * (W[k] + 1 - C[k]) for k in range(K))
 # The D value for the leave nodes must be equal to 1.
 model.addConstrs(D[k] == 1 for k in range(math.floor(K / 2), K))
-# The child leaves must have D values less than or equal to their parents.
-model.addConstrs(D[k] <= D[j] for k in [3, 4] for j in [0, 1])
-model.addConstrs(D[k] <= D[j] for k in [5, 6] for j in [0, 2])
-model.addConstrs(D[k] <= D[0] for k in [1, 2])
+model.addConstrs(D[k] == 0 for k in range(math.floor(K / 2)))
 
 # For the leaf nodes, the weights should be zero.
 model.addConstrs(D[k] + A.sum(k, "*") == 1 for k in range(K))
@@ -105,3 +102,5 @@ model.addConstrs(quicksum([A[j, f] * X_train[i][f] for f in range(4)]) >= \
                 for k in range(K) for j in find_all_parents(k)[1])
 
 model.optimize()
+
+print(D)
