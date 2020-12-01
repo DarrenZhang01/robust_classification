@@ -85,9 +85,7 @@ model.addConstrs(D[k] + A.sum(k, "*") == 1 for k in range(K))
 # Each data point can only be assigned at a single leaf node.
 model.addConstrs(Z.sum(i, "*") == 1 for i in range(NUM_DATA))
 # Each data point cannot be assigned at the non-leaf nodes.
-# =============================================================================
-# model.addConstrs(Z[i][k] <= D[k] for i in range(NUM_DATA) for k inioc45 range(K))
-# =============================================================================
+model.addConstrs(Z[i, k] <= D[k] for i in range(NUM_DATA) for k in range(K))
 
 
 model.addConstrs(Z[i, k] <= 1 - D[j] for i in range(NUM_DATA) for k in [3, 4] for j in [0, 1])
@@ -103,3 +101,5 @@ model.addConstrs(quicksum([A[j, f] * X_train[i][f] for f in range(4)]) + \
 model.addConstrs(quicksum([A[j, f] * X_train[i][f] for f in range(4)]) >= \
                 B[j] - NUM_DATA * (1 - Z[i, k]) for i in range(NUM_DATA) \
                 for k in range(K) for j in find_all_parents(k)[1])
+
+model.optimize()
