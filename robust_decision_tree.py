@@ -27,7 +27,7 @@ NUM_DATA = 105
 # Specify the number of nodes in the tree.
 K = 7
 # Specify the coefficients lambda for the variable d.
-lambda_ = [1] * K
+lambda_ = [0.01] * K
 N = 10
 epsilon = 0.01
 
@@ -50,7 +50,7 @@ model = Model("Robust Decision Tree")
 # F is used to track the number of misclassified data points at k.
 F = model.addVars(range(K), vtype=GRB.INTEGER, obj=1)
 # Variable D is 1 if k is a leaf node otherwise 0.
-D = model.addVars(range(K), vtype=GRB.BINARY, obj=[-l for l in lambda_])
+D = model.addVars(range(K), vtype=GRB.BINARY, obj=[l for l in lambda_])
 # Variable Z to track which leaf node k at each data point in the training set is assigned.
 Z = model.addVars(range(NUM_DATA), range(K), vtype=GRB.BINARY, obj=0)
 # Use A and B to set splits for the tree.
@@ -74,12 +74,12 @@ model.addConstrs(F[k] <= H[k] + NUM_DATA * (1 - W[k] + 1 - C[k]) for k in range(
 model.addConstrs(F[k] >= G[k] - NUM_DATA * (1 - W[k] + 1 - C[k]) for k in range(K))
 model.addConstrs(F[k] >= H[k] - NUM_DATA * (W[k] + 1 - C[k]) for k in range(K))
 # The D value for the leave nodes must be equal to 1.
-model.addConstrs(D[k] == 1 for k in range(math.floor(K / 2), K))
+# model.addConstrs(D[k] == 1 for k in range(math.floor(K / 2), K))
 
 # The child leaves must have D values less than or equal to their parents.
-model.addConstrs(D[k] >= D[j] for k in [3, 4] for j in [0, 1])
-model.addConstrs(D[k] >= D[j] for k in [5, 6] for j in [0, 2])
-model.addConstrs(D[k] >= D[0] for k in [1, 2])
+model.addConstrs(D[k] <= D[j] for k in [3, 4] for j in [0, 1])
+model.addConstrs(D[k] <= D[j] for k in [5, 6] for j in [0, 2])
+model.addConstrs(D[k] <= D[0] for k in [1, 2])
 
 
 # For the leaf nodes, the weights should be zero.
