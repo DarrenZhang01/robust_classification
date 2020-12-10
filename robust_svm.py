@@ -16,6 +16,7 @@ from sklearn.metrics import hinge_loss
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import normalize
 from sklearn.svm import SVC
+import collections
 from gurobipy import *
 
 np.random.seed(100)
@@ -38,9 +39,9 @@ def load_data(dataset):
     X = np.zeros((4898, 11))
     Y = np.zeros(4898)
     i = 0
-    for example in tfds.as_numpy(train):
-      X[i] = np.fromiter(example["features"].values(), dtype=float)
-      Y[i] = example["quality"]
+    for instance in tfds.as_numpy(train):
+      X[i] = np.fromiter(instance["features"].values(), dtype=float)
+      Y[i] = instance["quality"]
       i += 1
     X = normalize(X)
     Y = np.where(Y < 5, 1, -1)
@@ -48,11 +49,26 @@ def load_data(dataset):
     return (X_train, X_test, Y_train, Y_test)
 
   elif dataset == "credit":
-    pass
+
+    german_credit = tfds.load("german_credit_numeric")
+    train = german_credit["train"]
+
+    X = np.zeros((1000, 24))
+    Y = np.zeros(1000)
+    i = 0
+    for instance in tfds.as_numpy(train):
+      X[i] = instance["features"]
+      Y[i] = instance["label"]
+      i += 1
+    X = normalize(X)
+    Y = np.where(Y == 1, 1, -1)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3)
+    return (X_train, X_test, Y_train, Y_test)
 
 
-X_train, X_test, Y_train, Y_test = load_data("wine")
+X_train, X_test, Y_train, Y_test = load_data("credit")
 
+print(collections.Counter(Y_train))
 
 print(X_train.shape)
 print(Y_train)
@@ -82,16 +98,12 @@ for rho in rho_list:
 
   SVM.optimize()
 
-  # print("W: {}".format(W))
-  # print("b: {}".format(b))
-
   W_np = np.zeros(NUM_FEATURES)
   for j in range(NUM_FEATURES):
     W_np[j] = W[j].x
   W_np = W_np.reshape((W_np.shape[0], 1))
   Y_pred = X_test @ W_np - b.x
   Y_pred = Y_pred.reshape((Y_pred.shape[0],))
-  # print("Y_pred: {}".format(Y_pred))
 
   print("Y_test: {}, Y_pred: {}".format(Y_test.shape, Y_pred.shape))
   loss = hinge_loss(Y_test, Y_pred)
