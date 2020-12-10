@@ -10,46 +10,56 @@ Reference: Bertsimas, D., Dunn, J., Pawlowski, C., & Zhuo, Y. D. (2019).
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+import tensorflow_datasets as tfds
 from sklearn import datasets
 from sklearn.metrics import hinge_loss
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import normalize
 from sklearn.svm import SVC
 from gurobipy import *
 
 np.random.seed(100)
-#
-# (X_train, Y_train), (X_test, Y_test) = keras.datasets.mnist.load_data(path="mnist.npz")
-#
-# print("X_train: {}".format(X_train.shape))
-# print("Y_train: {}".format(Y_train.shape))
-# print("X_test: {}".format(X_test.shape))
-# print("Y_test: {}".format(Y_test))
-# # The shape of the data:
-# # X_train: (60000, 28, 28)
-# # Y_train: (60000,)
-# # X_test: (10000, 28, 28)
-# # Y_test: (10000,)
-#
-# X_train = np.reshape(X_train, (60000, 784))
-# X_test = np.reshape(X_test, (10000, 784))
-# # Binarize label y such that it is equal to 1 when the digit is 1 and it is -1
-# # when the digit belongs to other classes.
-# Y_train_bin = np.where(Y_train < 1.5, 1, -1)
-# Y_test_bin = np.where(Y_test < 1.5, 1, -1)
 
-iris = datasets.load_iris()
-X = iris.data
-Y = np.where(iris.target < 1.5, 1, -1)
 
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3)
+def load_data(dataset):
+
+  if dataset == "digit":
+
+    digits = datasets.load_digits()
+    X = digits.data
+    Y = np.where(digits.target < 5, 1, -1)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3)
+    return (X_train, X_test, Y_train, Y_test)
+
+  elif dataset == "wine":
+
+    wine = tfds.load("wine_quality")
+    train = wine["train"]
+    X = np.zeros((4898, 11))
+    Y = np.zeros(4898)
+    i = 0
+    for example in tfds.as_numpy(train):
+      X[i] = np.fromiter(example["features"].values(), dtype=float)
+      Y[i] = example["quality"]
+      i += 1
+    X = normalize(X)
+    Y = np.where(Y < 5, 1, -1)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3)
+    return (X_train, X_test, Y_train, Y_test)
+
+  elif dataset == "credit":
+    pass
+
+
+X_train, X_test, Y_train, Y_test = load_data("wine")
 
 
 print(X_train.shape)
 print(Y_train)
 
 
-NUM_DATA = 105
-NUM_FEATURES = 4
+NUM_DATA = X_train.shape[0]
+NUM_FEATURES = X_train.shape[1]
 
 rho_list = np.linspace(0.0001, 0.005, 20)
 
@@ -75,29 +85,14 @@ for rho in rho_list:
   # print("W: {}".format(W))
   # print("b: {}".format(b))
 
-  W_np = np.reshape(np.array([W[0].x, W[1].x, W[2].x, W[3].x]), (4, 1))
+  W_np = np.zeros(NUM_FEATURES)
+  for j in range(NUM_FEATURES):
+    W_np[j] = W[j].x
+  W_np = W_np.reshape((W_np.shape[0], 1))
   Y_pred = X_test @ W_np - b.x
+  Y_pred = Y_pred.reshape((Y_pred.shape[0],))
   # print("Y_pred: {}".format(Y_pred))
 
+  print("Y_test: {}, Y_pred: {}".format(Y_test.shape, Y_pred.shape))
   loss = hinge_loss(Y_test, Y_pred)
   print("the test loss for SVM under rho = {}: {}".format(rho, loss))
-
-##################### Train a general Support Vector Machine ###################
-
-# SVC = SVC()
-# SVC.fit(X_train, Y_train)
-#
-# Y_pred_SVC = SVC.predict(X_test)
-# SVC_loss = hinge_loss(Y_test, Y_pred_SVC)
-#
-# print("the overall test loss for the general SVM classifier: {}".format(SVC_loss))
-
-# SVM_vanilla = Model("vanilla_svm")
-#
-# # Create a variable delta to represent ||w||_2^2 in the objective.
-# delta = SVM_vanilla.addVar(vtype=GRB.CONTINUOUS, obj=0.5)
-# W_v = SVM_vanilla.addVars(range(NUM_FEATURES), lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, obj=[0]*NUM_FEATURES)
-# b_v = SVM_vanilla.addVar(vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, obj=0)
-# itas = SVM_vanilla.addVars(range(NUM_DATA), vtype=GRB.CONTINUOUS, obj=[0.0005]*NUM_DATA)
-#
-# SVM_vanilla.modelSense = GRB.MINIMIZE
