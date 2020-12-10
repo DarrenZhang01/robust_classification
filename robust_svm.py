@@ -19,54 +19,13 @@ from sklearn.svm import SVC
 import collections
 from gurobipy import *
 import matplotlib.pyplot as plt
+from utils import load_data
 
 np.random.seed(100)
 
+# DATA_LIST = ["digit", "wine", "credit"]
+DATA_LIST = ["wine", "credit"]
 
-def load_data(dataset):
-
-  if dataset == "digit":
-
-    digits = datasets.load_digits()
-    X = digits.data
-    Y = np.where(digits.target < 5, 1, -1)
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3)
-    return (X_train, X_test, Y_train, Y_test)
-
-  elif dataset == "wine":
-
-    wine = tfds.load("wine_quality")
-    train = wine["train"]
-    X = np.zeros((4898, 11))
-    Y = np.zeros(4898)
-    i = 0
-    for instance in tfds.as_numpy(train):
-      X[i] = np.fromiter(instance["features"].values(), dtype=float)
-      Y[i] = instance["quality"]
-      i += 1
-    X = normalize(X)
-    Y = np.where(Y < 5, 1, -1)
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3)
-    return (X_train, X_test, Y_train, Y_test)
-
-  elif dataset == "credit":
-
-    german_credit = tfds.load("german_credit_numeric")
-    train = german_credit["train"]
-
-    X = np.zeros((1000, 24))
-    Y = np.zeros(1000)
-    i = 0
-    for instance in tfds.as_numpy(train):
-      X[i] = instance["features"]
-      Y[i] = instance["label"]
-      i += 1
-    X = normalize(X)
-    Y = np.where(Y == 1, 1, -1)
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3)
-    return (X_train, X_test, Y_train, Y_test)
-
-DATA_LIST = ["digit", "wine", "credit"]
 
 i = 0
 for dataset in DATA_LIST:
@@ -89,7 +48,10 @@ for dataset in DATA_LIST:
   NUM_DATA = X_train.shape[0]
   NUM_FEATURES = X_train.shape[1]
 
-  rho_list = np.linspace(0.0001, 0.005, 20)
+  print("Now processing dataset: {}".format(dataset))
+  print("# features: {}, # data points: {}".format(NUM_FEATURES, NUM_DATA))
+
+  rho_list = np.linspace(0, 0.005, 10)
 
   ########### Use Gurobi to train SVMs under different degrees of robustness #############
   for rho in rho_list:
@@ -104,9 +66,9 @@ for dataset in DATA_LIST:
     SVM.Params.outputFlag = 0
 
     for i in range(NUM_DATA):
-        SVM.addConstr(Y_train[i] * (quicksum([W[j] * X_train[i][j] for j in \
-                      range(NUM_FEATURES)]) - b) - rho * quicksum([W[k] * W[k] for k in \
-                      range(NUM_FEATURES)]) >= 1 - itas[i])
+      SVM.addConstr(Y_train[i] * (quicksum([W[j] * X_train[i][j] for j in \
+                    range(NUM_FEATURES)]) - b) - rho * quicksum([W[k] * W[k] for k in \
+                    range(NUM_FEATURES)]) >= 1 - itas[i])
 
     SVM.optimize()
 
