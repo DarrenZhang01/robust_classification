@@ -81,10 +81,20 @@ print("the overall test loss for Robust SVM: {}".format(loss))
 
 ##################### Train a general Support Vector Machine ###################
 
-SVC = SVC()
-SVC.fit(X_train, Y_train)
+# SVC = SVC()
+# SVC.fit(X_train, Y_train)
+#
+# Y_pred_SVC = SVC.predict(X_test)
+# SVC_loss = hinge_loss(Y_test, Y_pred_SVC)
+#
+# print("the overall test loss for the general SVM classifier: {}".format(SVC_loss))
 
-Y_pred_SVC = SVC.predict(X_test)
-SVC_loss = hinge_loss(Y_test, Y_pred_SVC)
+SVM_vanilla = Model("vanilla_svm")
 
-print("the overall test loss for the general SVM classifier: {}".format(SVC_loss))
+# Create a variable delta to represent ||w||_2^2 in the objective.
+delta = SVM_vanilla.addVar(vtype=GRB.CONTINUOUS, obj=0.5)
+W_v = SVM_vanilla.addVars(range(NUM_FEATURES), lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, obj=[0]*NUM_FEATURES)
+b_v = SVM_vanilla.addVar(vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, obj=0)
+itas = SVM_vanilla.addVars(range(NUM_DATA), vtype=GRB.CONTINUOUS, obj=[0.0005]*NUM_DATA)
+
+SVM_vanilla.modelSense = GRB.MINIMIZE
