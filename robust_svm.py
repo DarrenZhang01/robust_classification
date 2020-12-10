@@ -121,8 +121,8 @@ for dataset in DATA_LIST:
     loss = hinge_loss(Y_test, Y_pred)
     print("the test loss for SVM under rho = {}: {}".format(rho, loss))
 
-  x_axis.append(rho)
-  y_axis.append(loss)
+    x_axis.append(rho)
+    y_axis.append(loss)
 
   plt.title("loss vs. robustness in SVM - {}".format(dataset))
   plt.plot(x_axis, y_axis)
