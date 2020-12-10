@@ -18,6 +18,7 @@ from sklearn.preprocessing import normalize
 from sklearn.svm import SVC
 import collections
 from gurobipy import *
+import matplotlib.pyplot as plt
 
 np.random.seed(100)
 
@@ -65,46 +66,66 @@ def load_data(dataset):
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3)
     return (X_train, X_test, Y_train, Y_test)
 
+DATA_LIST = ["digit", "wine", "credit"]
 
-X_train, X_test, Y_train, Y_test = load_data("credit")
+i = 0
+for dataset in DATA_LIST:
 
-print(collections.Counter(Y_train))
+  plt.figure(i)
 
-print(X_train.shape)
-print(Y_train)
+  X_train, X_test, Y_train, Y_test = load_data(dataset)
+
+  # Create two lists - "x_axis" and "y_axis" for storing the according
+  # hyperparameter and the loss for each hyperparameter.
+  x_axis = []
+  y_axis = []
+
+  print(collections.Counter(Y_train))
+
+  print(X_train.shape)
+  print(Y_train)
 
 
-NUM_DATA = X_train.shape[0]
-NUM_FEATURES = X_train.shape[1]
+  NUM_DATA = X_train.shape[0]
+  NUM_FEATURES = X_train.shape[1]
 
-rho_list = np.linspace(0.0001, 0.005, 20)
+  rho_list = np.linspace(0.0001, 0.005, 20)
 
-########### Use Gurobi to train SVMs under different degrees of robustness #############
-for rho in rho_list:
+  ########### Use Gurobi to train SVMs under different degrees of robustness #############
+  for rho in rho_list:
 
-  SVM = Model("robust_svm")
+    SVM = Model("robust_svm")
 
-  itas = SVM.addVars(range(NUM_DATA), vtype=GRB.CONTINUOUS, obj=[0.0005]*NUM_DATA)
-  W = SVM.addVars(range(NUM_FEATURES), lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, obj=[0]*NUM_FEATURES)
-  b = SVM.addVar(vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, obj=0)
+    itas = SVM.addVars(range(NUM_DATA), vtype=GRB.CONTINUOUS, obj=[0.0005]*NUM_DATA)
+    W = SVM.addVars(range(NUM_FEATURES), lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, obj=[0]*NUM_FEATURES)
+    b = SVM.addVar(vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, obj=0)
 
-  SVM.modelSense = GRB.MINIMIZE
-  SVM.Params.outputFlag = 0
+    SVM.modelSense = GRB.MINIMIZE
+    SVM.Params.outputFlag = 0
 
-  for i in range(NUM_DATA):
-      SVM.addConstr(Y_train[i] * (quicksum([W[j] * X_train[i][j] for j in \
-                    range(NUM_FEATURES)]) - b) - rho * quicksum([W[k] * W[k] for k in \
-                    range(NUM_FEATURES)]) >= 1 - itas[i])
+    for i in range(NUM_DATA):
+        SVM.addConstr(Y_train[i] * (quicksum([W[j] * X_train[i][j] for j in \
+                      range(NUM_FEATURES)]) - b) - rho * quicksum([W[k] * W[k] for k in \
+                      range(NUM_FEATURES)]) >= 1 - itas[i])
 
-  SVM.optimize()
+    SVM.optimize()
 
-  W_np = np.zeros(NUM_FEATURES)
-  for j in range(NUM_FEATURES):
-    W_np[j] = W[j].x
-  W_np = W_np.reshape((W_np.shape[0], 1))
-  Y_pred = X_test @ W_np - b.x
-  Y_pred = Y_pred.reshape((Y_pred.shape[0],))
+    W_np = np.zeros(NUM_FEATURES)
+    for j in range(NUM_FEATURES):
+      W_np[j] = W[j].x
+    W_np = W_np.reshape((W_np.shape[0], 1))
+    Y_pred = X_test @ W_np - b.x
+    Y_pred = Y_pred.reshape((Y_pred.shape[0],))
 
-  print("Y_test: {}, Y_pred: {}".format(Y_test.shape, Y_pred.shape))
-  loss = hinge_loss(Y_test, Y_pred)
-  print("the test loss for SVM under rho = {}: {}".format(rho, loss))
+    print("Y_test: {}, Y_pred: {}".format(Y_test.shape, Y_pred.shape))
+    loss = hinge_loss(Y_test, Y_pred)
+    print("the test loss for SVM under rho = {}: {}".format(rho, loss))
+
+  x_axis.append(rho)
+  y_axis.append(loss)
+
+  plt.title("loss vs. robustness in SVM - {}".format(dataset))
+  plt.plot(x_axis, y_axis)
+  plt.savefig("SVM_{}.png".format(dataset))
+
+  i += 1
