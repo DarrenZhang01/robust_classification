@@ -22,18 +22,11 @@ np.random.seed(1)
 
 DATA_LIST = ["wine", "credit"]
 
-
 for i, dataset in enumerate(DATA_LIST):
     plt.figure(i)
     X_train, X_test, Y_train, Y_test = load_data(dataset)
     x_axis = []
     y_axis = []
-
-    #print(collections.Counter(Y_train))
-
-    print(X_train.shape)
-    print(Y_train)
-
 
     NUM_DATA = X_train.shape[0]
     NUM_FEATURES = X_train.shape[1]
@@ -41,7 +34,7 @@ for i, dataset in enumerate(DATA_LIST):
     print("Now processing dataset: {}".format(dataset))
     print("# features: {}, # data points: {}".format(NUM_FEATURES, NUM_DATA))
 
-    rho_list = [0.005]
+    rho_list = np.linspace(0, 0.1, 5)
 
     ################# Use Gurobi to train a Robust Logistic Regression #################
     for rho in rho_list:
@@ -51,12 +44,13 @@ for i, dataset in enumerate(DATA_LIST):
         beta_0 = model.addVar(vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, obj=0)
         l = model.addVars(range(NUM_DATA), vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, obj=0)
         t = model.addVars(range(NUM_DATA), vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, obj=1)
-    
+        beta_abs = model.addVars(range(NUM_FEATURES), vtype=GRB.CONTINUOUS, obj=0)
+        
         model.modelSense = GRB.MINIMIZE
-    
+        model.addConstrs(beta_abs[i] == abs_(beta[i]) for i in range(NUM_FEATURES))
         model.addConstrs(l[i] == -1 * Y_train[i] *
                          quicksum([beta[j] * X_train[i][j] + beta_0 for j in range(NUM_FEATURES)]) +
-                         rho * quicksum([beta[k] * beta[k] for k in range(NUM_FEATURES)]) for i in range(NUM_DATA))
+                         rho * beta_abs.sum('*') for i in range(NUM_DATA))
     
         l_ = np.arange(-20., 20., 0.1).tolist()
         t_ = [math.log(1 + math.e ** i) for i in l_]
@@ -73,14 +67,13 @@ for i, dataset in enumerate(DATA_LIST):
             W_np[j] = beta[j].x
         W_np = W_np.reshape((W_np.shape[0], 1))
         Y_pred = X_test @ W_np + beta_0.x
-        Y_pred = np.where(Y_pred < 0, -1, Y_pred)
-        Y_pred = np.where(Y_pred >= 0, 1, Y_pred)
-    
-        acc = sum(Y_pred.flatten() == Y_test)/len(Y_test)
+        Y_pred = 1/(1 + np.exp(-Y_pred))
+        Y_pred = Y_pred.reshape((Y_pred.shape[0],))
+        loss = hinge_loss(Y_test, Y_pred)
         
         x_axis.append(rho)
-        y_axis.append(acc)
-    plt.title("accuracy vs. robustness in Logistic Regression - {}".format(dataset))
+        y_axis.append(loss)
+    plt.title("hinge loss vs. robustness in Logistic Regression - {}".format(dataset))
     plt.plot(x_axis, y_axis)
     plt.savefig("LR_{}.png".format(dataset))
 
