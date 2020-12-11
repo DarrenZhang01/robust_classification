@@ -13,6 +13,7 @@ from tensorflow import keras
 import tensorflow_datasets as tfds
 from sklearn import datasets
 from sklearn.metrics import hinge_loss
+from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import normalize
 from sklearn.svm import SVC
@@ -51,14 +52,14 @@ for dataset in DATA_LIST:
   print("Now processing dataset: {}".format(dataset))
   print("# features: {}, # data points: {}".format(NUM_FEATURES, NUM_DATA))
 
-  rho_list = np.linspace(0, 0.005, 10)
+  rho_list = np.linspace(0, 0.05, 10)
 
   ########### Use Gurobi to train SVMs under different degrees of robustness #############
   for rho in rho_list:
 
     SVM = Model("robust_svm")
 
-    itas = SVM.addVars(range(NUM_DATA), vtype=GRB.CONTINUOUS, obj=[0.0005]*NUM_DATA)
+    itas = SVM.addVars(range(NUM_DATA), vtype=GRB.CONTINUOUS, obj=[1]*NUM_DATA)
     W = SVM.addVars(range(NUM_FEATURES), lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, obj=[0]*NUM_FEATURES)
     b = SVM.addVar(vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, obj=0)
 
@@ -77,11 +78,13 @@ for dataset in DATA_LIST:
       W_np[j] = W[j].x
     W_np = W_np.reshape((W_np.shape[0], 1))
     Y_pred = X_test @ W_np - b.x
+    # Y_pred = np.where(Y_pred > 0, 1, -1)
     Y_pred = Y_pred.reshape((Y_pred.shape[0],))
 
     print("Y_test: {}, Y_pred: {}".format(Y_test.shape, Y_pred.shape))
+    # acc = accuracy_score(Y_test, Y_pred)
     loss = hinge_loss(Y_test, Y_pred)
-    print("the test loss for SVM under rho = {}: {}".format(rho, loss))
+    print("the test hinge loss for SVM under rho = {}: {}".format(rho, loss))
 
     x_axis.append(rho)
     y_axis.append(loss)
