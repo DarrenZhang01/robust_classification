@@ -9,7 +9,18 @@ from sklearn.preprocessing import normalize
 
 
 def load_data(dataset):
-
+  if dataset == 'synthetic':
+    X = np.random.multivariate_normal(np.zeros(2), np.eye(2), size=500)
+    Y = X[:,0] >= X[:,1]
+    Y = np.where(Y == True, 1, -1)
+    for i in range(50):
+        idx = np.random.randint(500)
+        Y[idx] = -Y[idx]
+    X_test = X[:int(0.3*len(X))]
+    Y_test = Y[:int(0.3*len(X))]
+    X_train = X[int(0.3*len(X)):]
+    Y_train = Y[int(0.3*len(X)):]
+    return (X_train, X_test, Y_train, Y_test)
   if dataset == "digit":
 
     digits = datasets.load_digits()
