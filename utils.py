@@ -6,9 +6,12 @@ from sklearn import datasets
 from sklearn.metrics import hinge_loss
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import normalize
+import matplotlib.pyplot as plt
 
+np.random.seed(1)
 
 def load_data(dataset):
+
   if dataset == 'synthetic':
     X = np.random.multivariate_normal(np.zeros(2), np.eye(2), size=500)
     Y = X[:,0] >= X[:,1]
@@ -19,8 +22,8 @@ def load_data(dataset):
     X_train = X[int(0.3*len(X)):]
     Y_train = Y[int(0.3*len(X)):]
     return (X_train, X_test, Y_train, Y_test)
-  if dataset == "digit":
 
+  if dataset == "digit":
     digits = datasets.load_digits()
     X = digits.data
     Y = np.where(digits.target < 5, 1, -1)
@@ -28,7 +31,6 @@ def load_data(dataset):
     return (X_train, X_test, Y_train, Y_test)
 
   elif dataset == "wine":
-
     wine = tfds.load("wine_quality")
     train = wine["train"]
     X = np.zeros((4898, 11))
@@ -44,7 +46,6 @@ def load_data(dataset):
     return (X_train, X_test, Y_train, Y_test)
 
   elif dataset == "credit":
-
     german_credit = tfds.load("german_credit_numeric")
     train = german_credit["train"]
 
@@ -59,3 +60,22 @@ def load_data(dataset):
     Y = np.where(Y == 1, 1, -1)
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3)
     return (X_train, X_test, Y_train, Y_test)
+
+
+if __name__ == "__main__":
+
+    X_train, X_test, Y_train, Y_test = load_data("synthetic")
+
+    plt.figure(1)
+    label_1_indices = np.where(Y_train == 1)
+    label_n1_indices = np.where(Y_train == -1)
+    plt.scatter(X_train[label_1_indices, 0], X_train[label_1_indices, 1])
+    plt.scatter(X_train[label_n1_indices, 0], X_train[label_n1_indices, 1])
+    plt.savefig("./figures/sythetic_train_visual.png")
+
+    plt.figure(2)
+    label_1_indices = np.where(Y_test == 1)
+    label_n1_indices = np.where(Y_test == -1)
+    plt.scatter(X_test[label_1_indices, 0], X_test[label_1_indices, 1])
+    plt.scatter(X_test[label_n1_indices, 0], X_test[label_n1_indices, 1])
+    plt.savefig("./figures/sythetic_test_visual.png")
