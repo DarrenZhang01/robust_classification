@@ -20,7 +20,8 @@ from utils import load_data
 
 np.random.seed(1)
 
-DATA_LIST = ["synthetic"]
+# DATA_LIST = ["credit", "wine", "synthetic"]
+DATA_LIST = ["credit"]
 
 
 def find_all_parents(node):
@@ -36,27 +37,20 @@ def find_all_parents(node):
     return left, right
 
 
-def get_loss(X_test, Y_test, node_labels):
+def get_acc(X_test, Y_test, node_labels):
     predictions = []
     for i in range(len(X_test)):
         test = X_test[i]
         cur_node = 0
-        while D[cur_node].x != 0:
+        while D[cur_node].x == 0:
             W_np = np.zeros(NUM_FEATURES)
             for j in range(NUM_FEATURES):
                 W_np[j] = A[cur_node, j].x
             if W_np.dot(test) < B[cur_node].x:
                 cur_node = 2 * cur_node + 1
-                if D[cur_node].x == 0:
-                    predictions.append(node_labels[cur_node])
-                    break
             else:
                 cur_node = 2 * cur_node + 2
-                if D[cur_node].x == 0:
-                    predictions.append(node_labels[cur_node])
-                    break
-    print("acc", sum(Y_test == np.array(predictions))/len(Y_test))
-    #return hinge_loss(Y_test, predictions)
+        predictions.append(node_labels[cur_node])
     return sum(Y_test == np.array(predictions))/len(Y_test)
 
 
@@ -64,30 +58,20 @@ def get_node_labels(X_train, Y_train):
     pred_count = {}
     for i in range(len(X_train)):
         cur_node = 0
-        while D[cur_node].x != 0:
+        while D[cur_node].x == 0:
             W_np = np.zeros(NUM_FEATURES)
             for j in range(NUM_FEATURES):
                 W_np[j] = A[cur_node, j].x
             if W_np.dot(X_train[i]) < B[cur_node].x:
                 cur_node = 2 * cur_node + 1
-                if D[cur_node].x == 0:
-                    if cur_node not in pred_count:
-                        pred_count[cur_node] = [0, 0]
-                    if Y_train[i] == 1:
-                        pred_count[cur_node][1] += 1
-                    else:
-                        pred_count[cur_node][0] += 1
-                    break
             else:
                 cur_node = 2 * cur_node + 2
-                if D[cur_node].x == 0:
-                    if cur_node not in pred_count:
-                        pred_count[cur_node] = [0, 0]
-                    if Y_train[i] == 1:
-                        pred_count[cur_node][1] += 1
-                    else:
-                        pred_count[cur_node][0] += 1
-                    break
+        if cur_node not in pred_count:
+            pred_count[cur_node] = [0, 0]
+            if Y_train[i] == 1:
+                pred_count[cur_node][1] += 1
+            else:
+                pred_count[cur_node][0] += 1
     for k in pred_count:
         count = pred_count[k]
         if count[0] > count[1]:
@@ -97,14 +81,8 @@ def get_node_labels(X_train, Y_train):
     return pred_count
 
 
-
-
-
-
 for i, dataset in enumerate(DATA_LIST):
     plt.figure(i)
-    plt.xlabel = 'rho'
-    plt.ylabel = 'hinge loss'
     X_train, X_test, Y_train, Y_test = load_data(dataset)
     NUM_DATA = X_train.shape[0]
     NUM_FEATURES = X_train.shape[1]
@@ -121,6 +99,7 @@ for i, dataset in enumerate(DATA_LIST):
 
     rho_list = np.linspace(0, 0.05, 10)
     for rho in rho_list:
+        print(rho)
         ##################### Use Gurobi to train a Robust SVM ########################
 
         model = Model("Robust Decision Tree")
@@ -187,12 +166,13 @@ for i, dataset in enumerate(DATA_LIST):
 
         model.optimize()
 
-        print(D)
-        #node_labels = get_node_labels(X_train, Y_train)
-        #loss = get_loss(X_test, Y_test, node_labels)
-        #x_axis.append(rho)
-        #y_axis.append(loss)
+        node_labels = get_node_labels(X_train, Y_train)
+        acc = get_acc(X_test, Y_test, node_labels)
+        x_axis.append(rho)
+        y_axis.append(acc)
 
-    #plt.title("hinge loss vs. robustness in Decision Tree - {}".format(dataset))
-    #plt.plot(x_axis, y_axis)
-    #plt.savefig("DT_{}.png".format(dataset))
+    plt.title("accuracy vs. robustness in Decision Tree - {}".format(dataset))
+    plt.plot(x_axis, y_axis)
+    plt.xlabel('rho')
+    plt.ylabel('accuracy')
+    plt.savefig("DT_{}.png".format(dataset))

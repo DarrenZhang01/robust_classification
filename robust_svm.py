@@ -22,10 +22,9 @@ from gurobipy import *
 import matplotlib.pyplot as plt
 from utils import load_data
 
-np.random.seed(100)
+np.random.seed(1)
 
-# DATA_LIST = ["digit", "wine", "credit"]
-DATA_LIST = ["wine", "credit"]
+DATA_LIST = ["synthetic", "wine", "credit"]
 
 
 i = 0
@@ -51,8 +50,11 @@ for dataset in DATA_LIST:
 
   print("Now processing dataset: {}".format(dataset))
   print("# features: {}, # data points: {}".format(NUM_FEATURES, NUM_DATA))
-
-  rho_list = np.linspace(0, 0.05, 10)
+  
+  if dataset == 'synthetic':
+      rho_list = np.linspace(0, 0.5, 25)
+  else:
+      rho_list = np.linspace(0, 0.0002, 25)
 
   ########### Use Gurobi to train SVMs under different degrees of robustness #############
   for rho in rho_list:
@@ -62,14 +64,15 @@ for dataset in DATA_LIST:
     itas = SVM.addVars(range(NUM_DATA), vtype=GRB.CONTINUOUS, obj=[1]*NUM_DATA)
     W = SVM.addVars(range(NUM_FEATURES), lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, obj=[0]*NUM_FEATURES)
     b = SVM.addVar(vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, obj=0)
+    W_abs = SVM.addVars(range(NUM_FEATURES), vtype=GRB.CONTINUOUS, obj=0)
 
     SVM.modelSense = GRB.MINIMIZE
     SVM.Params.outputFlag = 0
+    SVM.addConstrs(W_abs[i] == abs_(W[i]) for i in range(NUM_FEATURES))
 
     for i in range(NUM_DATA):
       SVM.addConstr(Y_train[i] * (quicksum([W[j] * X_train[i][j] for j in \
-                    range(NUM_FEATURES)]) - b) - rho * quicksum([W[k] * W[k] for k in \
-                    range(NUM_FEATURES)]) >= 1 - itas[i])
+                    range(NUM_FEATURES)]) - b) - rho * W_abs.sum('*') >= 1 - itas[i])
 
     SVM.optimize()
 
@@ -80,17 +83,21 @@ for dataset in DATA_LIST:
     Y_pred = X_test @ W_np - b.x
     # Y_pred = np.where(Y_pred > 0, 1, -1)
     Y_pred = Y_pred.reshape((Y_pred.shape[0],))
-
+    Y_pred = np.where(Y_pred < 0, -1, Y_pred)
+    Y_pred = np.where(Y_pred >= 0, 1, Y_pred)
     print("Y_test: {}, Y_pred: {}".format(Y_test.shape, Y_pred.shape))
-    # acc = accuracy_score(Y_test, Y_pred)
-    loss = hinge_loss(Y_test, Y_pred)
-    print("the test hinge loss for SVM under rho = {}: {}".format(rho, loss))
+    acc = sum(Y_pred.flatten() == Y_test) / len(Y_test)
+    #loss = hinge_loss(Y_test, Y_pred)
+    #print("the test hinge loss for SVM under rho = {}: {}".format(rho, loss))
 
     x_axis.append(rho)
-    y_axis.append(loss)
+    y_axis.append(acc)
 
-  plt.title("loss vs. robustness in SVM - {}".format(dataset))
+  plt.title("accuracy vs. robustness in SVM - {}".format(dataset))
   plt.plot(x_axis, y_axis)
+  plt.xlabel('rho')
+  plt.ylabel('accuracy')
+  plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
   plt.savefig("SVM_{}.png".format(dataset))
 
   i += 1

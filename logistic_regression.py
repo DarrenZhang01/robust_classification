@@ -20,7 +20,7 @@ from utils import load_data
 np.random.seed(1)
 
 
-DATA_LIST = ["wine", "credit"]
+DATA_LIST = ["synthetic", "wine", "credit"]
 
 for i, dataset in enumerate(DATA_LIST):
     plt.figure(i)
@@ -34,7 +34,10 @@ for i, dataset in enumerate(DATA_LIST):
     print("Now processing dataset: {}".format(dataset))
     print("# features: {}, # data points: {}".format(NUM_FEATURES, NUM_DATA))
 
-    rho_list = np.linspace(0, 0.1, 5)
+    if dataset == 'synthetic':
+        rho_list = np.linspace(0, 0.5, 25)
+    else:
+        rho_list = np.linspace(0, 0.05, 25)
 
     ################# Use Gurobi to train a Robust Logistic Regression #################
     for rho in rho_list:
@@ -67,14 +70,19 @@ for i, dataset in enumerate(DATA_LIST):
             W_np[j] = beta[j].x
         W_np = W_np.reshape((W_np.shape[0], 1))
         Y_pred = X_test @ W_np + beta_0.x
-        Y_pred = 1/(1 + np.exp(-Y_pred))
-        Y_pred = Y_pred.reshape((Y_pred.shape[0],))
-        loss = hinge_loss(Y_test, Y_pred)
-        
+        Y_pred = np.where(Y_pred < 0, -1, Y_pred)
+        Y_pred = np.where(Y_pred >= 0, 1, Y_pred)
+        #Y_pred = 1/(1 + np.exp(-Y_pred))
+        #Y_pred = Y_pred.reshape((Y_pred.shape[0],))
+        acc = sum(Y_pred.flatten() == Y_test) / len(Y_test)
+        #loss = hinge_loss(Y_test, Y_pred)
         x_axis.append(rho)
-        y_axis.append(loss)
-    plt.title("hinge loss vs. robustness in Logistic Regression - {}".format(dataset))
+        y_axis.append(acc)
+    plt.title("accuracy vs. robustness in Logistic Regression - {}".format(dataset))
     plt.plot(x_axis, y_axis)
+    plt.xlabel('rho')
+    plt.ylabel('accuracy')
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
     plt.savefig("LR_{}.png".format(dataset))
 
 
