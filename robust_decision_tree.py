@@ -20,7 +20,7 @@ from utils import load_data
 
 np.random.seed(1)
 
-DATA_LIST = ["synthetic", "wine", "credit"]
+DATA_LIST = ["synthetic"]
 
 
 def find_all_parents(node):
@@ -115,7 +115,7 @@ for i, dataset in enumerate(DATA_LIST):
     print("# features: {}, # data points: {}".format(NUM_FEATURES, NUM_DATA))
 
     K = 7
-    lambda_ = [1] * K
+    lambda_ = [0] * K
     N = 10
     epsilon = 0.01
     
@@ -152,12 +152,12 @@ for i, dataset in enumerate(DATA_LIST):
         model.addConstrs(F[k] >= G[k] - NUM_DATA * (1 - W[k] + 1 - C[k]) for k in range(K))
         model.addConstrs(F[k] >= H[k] - NUM_DATA * (W[k] + 1 - C[k]) for k in range(K))
         # The D value for the leave nodes must be equal to 1.
-        # model.addConstrs(D[k] == 1 for k in range(math.floor(K / 2), K))
+        model.addConstrs(D[k] == 1 for k in range(math.floor(K / 2), K))
         
         # The child leaves must have D values less than or equal to their parents.
-        model.addConstrs(D[k] <= D[j] for k in [3, 4] for j in [0, 1])
-        model.addConstrs(D[k] <= D[j] for k in [5, 6] for j in [0, 2])
-        model.addConstrs(D[k] <= D[0] for k in [1, 2])
+        model.addConstrs(D[k] >= D[j] for k in [3, 4] for j in [0, 1])
+        model.addConstrs(D[k] >= D[j] for k in [5, 6] for j in [0, 2])
+        model.addConstrs(D[k] >= D[0] for k in [1, 2])
         
         
         # For the leaf nodes, the weights should be zero.
@@ -185,11 +185,11 @@ for i, dataset in enumerate(DATA_LIST):
                         for k in range(K) for j in find_all_parents(k)[1])
         
         model.optimize()
-        node_labels = get_node_labels(X_train, Y_train)
-        loss = get_loss(X_test, Y_test, node_labels)
-        x_axis.append(rho)
-        y_axis.append(loss)
+        #node_labels = get_node_labels(X_train, Y_train)
+        #loss = get_loss(X_test, Y_test, node_labels)
+        #x_axis.append(rho)
+        #y_axis.append(loss)
         
-    plt.title("hinge loss vs. robustness in Decision Tree - {}".format(dataset))
-    plt.plot(x_axis, y_axis)
-    plt.savefig("DT_{}.png".format(dataset))
+    #plt.title("hinge loss vs. robustness in Decision Tree - {}".format(dataset))
+    #plt.plot(x_axis, y_axis)
+    #plt.savefig("DT_{}.png".format(dataset))
