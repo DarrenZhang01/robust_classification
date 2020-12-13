@@ -20,7 +20,7 @@ from utils import load_data
 
 np.random.seed(1)
 
-DATA_LIST = ["wine", "credit"]
+DATA_LIST = ["synthetic", "wine", "credit"]
 
 
 def find_all_parents(node):
@@ -36,7 +36,7 @@ def find_all_parents(node):
     return left, right
 
 
-def get_loss(X_test, Y_test):
+def get_loss(X_test, Y_test, node_labels):
     predictions = []
     for i in range(len(X_test)):
         test = X_test[i]
@@ -48,19 +48,63 @@ def get_loss(X_test, Y_test):
             if W_np.dot(test) < B[cur_node].x:
                 cur_node = 2 * cur_node + 1
                 if D[cur_node].x == 0:
-                    predictions.append(-1)
+                    predictions.append(node_labels[cur_node])
                     break
             else:
                 cur_node = 2 * cur_node + 2
                 if D[cur_node].x == 0:
-                    predictions.append(1)
+                    predictions.append(node_labels[cur_node])
                     break
     print("acc", sum(Y_test == np.array(predictions))/len(Y_test))
-    return hinge_loss(Y_test, predictions)
+    #return hinge_loss(Y_test, predictions)
+    return sum(Y_test == np.array(predictions))/len(Y_test)
+   
     
+def get_node_labels(X_train, Y_train):
+    pred_count = {}
+    for i in range(len(X_train)):
+        cur_node = 0
+        while D[cur_node].x != 0:
+            W_np = np.zeros(NUM_FEATURES)
+            for j in range(NUM_FEATURES):
+                W_np[j] = A[cur_node, j].x
+            if W_np.dot(X_train[i]) < B[cur_node].x:
+                cur_node = 2 * cur_node + 1
+                if D[cur_node].x == 0:
+                    if cur_node not in pred_count:
+                        pred_count[cur_node] = [0, 0]
+                    if Y_train[i] == 1:
+                        pred_count[cur_node][1] += 1
+                    else:
+                        pred_count[cur_node][0] += 1
+                    break
+            else:
+                cur_node = 2 * cur_node + 2
+                if D[cur_node].x == 0:
+                    if cur_node not in pred_count:
+                        pred_count[cur_node] = [0, 0]
+                    if Y_train[i] == 1:
+                        pred_count[cur_node][1] += 1
+                    else:
+                        pred_count[cur_node][0] += 1 
+                    break
+    for k in pred_count:
+        count = pred_count[k]
+        if count[0] > count[1]:
+            pred_count[k] = -1
+        else:
+            pred_count[k] = 1
+    return pred_count
+    
+        
+        
+        
+
 
 for i, dataset in enumerate(DATA_LIST):
     plt.figure(i)
+    plt.xlabel = 'rho'
+    plt.ylabel = 'hinge loss'
     X_train, X_test, Y_train, Y_test = load_data(dataset)
     NUM_DATA = X_train.shape[0]
     NUM_FEATURES = X_train.shape[1]
@@ -75,7 +119,7 @@ for i, dataset in enumerate(DATA_LIST):
     N = 10
     epsilon = 0.01
     
-    rho_list = np.linspace(0, 0.005, 10)
+    rho_list = np.linspace(0, 0.05, 10)
     for rho in rho_list:
         ##################### Use Gurobi to train a Robust SVM ########################
         
@@ -141,8 +185,8 @@ for i, dataset in enumerate(DATA_LIST):
                         for k in range(K) for j in find_all_parents(k)[1])
         
         model.optimize()
-        
-        loss = get_loss(X_test, Y_test)
+        node_labels = get_node_labels(X_train, Y_train)
+        loss = get_loss(X_test, Y_test, node_labels)
         x_axis.append(rho)
         y_axis.append(loss)
         
