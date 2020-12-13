@@ -1,5 +1,5 @@
 """
-An implementation of Robust SVM based on MNIST dataset.
+An implementation of Robust SVM.
 
 2020.11.14
 
@@ -50,7 +50,7 @@ for dataset in DATA_LIST:
 
   print("Now processing dataset: {}".format(dataset))
   print("# features: {}, # data points: {}".format(NUM_FEATURES, NUM_DATA))
-  
+
   if dataset == 'synthetic':
       rho_list = np.linspace(0, 0.5, 25)
   else:
