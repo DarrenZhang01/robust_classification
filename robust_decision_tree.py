@@ -1,6 +1,8 @@
 """
-An implementation of Robust Decision Tree based on MNIST dataset.
+An implementation of Robust Decision Tree.
+
 2020.11.14
+
 Reference: Bertsimas, D., Dunn, J., Pawlowski, C., & Zhuo, Y. D. (2019).
            Robust classification. INFORMS Journal on Optimization, 1(1), 2-34.
 """

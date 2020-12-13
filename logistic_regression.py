@@ -1,6 +1,8 @@
 """
-An implementation of Robust logistic Regression based on MNIST dataset.
+An implementation of Robust logistic Regression.
+
 2020.11.14
+
 Reference: Bertsimas, D., Dunn, J., Pawlowski, C., & Zhuo, Y. D. (2019).
            Robust classification. INFORMS Journal on Optimization, 1(1), 2-34.
 """
@@ -42,29 +44,29 @@ for i, dataset in enumerate(DATA_LIST):
     ################# Use Gurobi to train a Robust Logistic Regression #################
     for rho in rho_list:
         model = Model("logistic regression")
-    
+
         beta = model.addVars(range(NUM_FEATURES), lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, obj=0)
         beta_0 = model.addVar(vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, obj=0)
         l = model.addVars(range(NUM_DATA), vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, obj=0)
         t = model.addVars(range(NUM_DATA), vtype=GRB.CONTINUOUS, lb=-GRB.INFINITY, obj=1)
         beta_abs = model.addVars(range(NUM_FEATURES), vtype=GRB.CONTINUOUS, obj=0)
-        
+
         model.modelSense = GRB.MINIMIZE
         model.addConstrs(beta_abs[i] == abs_(beta[i]) for i in range(NUM_FEATURES))
         model.addConstrs(l[i] == -1 * Y_train[i] *
                          quicksum([beta[j] * X_train[i][j] + beta_0 for j in range(NUM_FEATURES)]) +
                          rho * beta_abs.sum('*') for i in range(NUM_DATA))
-    
+
         l_ = np.arange(-20., 20., 0.1).tolist()
         t_ = [math.log(1 + math.e ** i) for i in l_]
-        
+
         for i in range(NUM_DATA):
             model.addGenConstrPWL(l[i], t[i], l_, t_)
         model.optimize()
-    
+
         print("beta: {}".format(beta))
         print("beta_0: {}".format(beta_0))
-    
+
         W_np = np.zeros(NUM_FEATURES)
         for j in range(NUM_FEATURES):
             W_np[j] = beta[j].x
@@ -84,7 +86,3 @@ for i, dataset in enumerate(DATA_LIST):
     plt.ylabel('accuracy')
     plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
     plt.savefig("LR_{}.png".format(dataset))
-
-
-
-
