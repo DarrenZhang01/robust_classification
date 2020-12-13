@@ -6,6 +6,7 @@ Reference: Bertsimas, D., Dunn, J., Pawlowski, C., & Zhuo, Y. D. (2019).
 """
 
 import numpy as np
+from sklearn.decomposition import PCA
 import math
 import tensorflow as tf
 from tensorflow import keras
@@ -20,8 +21,9 @@ from utils import load_data
 
 np.random.seed(1)
 
+
 # DATA_LIST = ["credit", "wine", "synthetic"]
-DATA_LIST = ["credit"]
+DATA_LIST = ["wine", "credit"]
 
 
 def find_all_parents(node):
@@ -84,6 +86,10 @@ def get_node_labels(X_train, Y_train):
 for i, dataset in enumerate(DATA_LIST):
     plt.figure(i)
     X_train, X_test, Y_train, Y_test = load_data(dataset)
+    if dataset in ["wine", "credit"]:
+        pca = PCA(n_components=2)
+        X_train = pca.fit_transform(X_train)
+        X_test = pca.transform(X_test)
     NUM_DATA = X_train.shape[0]
     NUM_FEATURES = X_train.shape[1]
     x_axis = []
