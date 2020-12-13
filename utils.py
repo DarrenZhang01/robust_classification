@@ -13,9 +13,7 @@ def load_data(dataset):
     X = np.random.multivariate_normal(np.zeros(2), np.eye(2), size=500)
     Y = X[:,0] >= X[:,1]
     Y = np.where(Y == True, 1, -1)
-    for i in range(50):
-        idx = np.random.randint(500)
-        Y[idx] = -Y[idx]
+    X = X + np.random.multivariate_normal(np.zeros(2), np.eye(2) * 0.1, size=500)
     X_test = X[:int(0.3*len(X))]
     Y_test = Y[:int(0.3*len(X))]
     X_train = X[int(0.3*len(X)):]
@@ -41,7 +39,7 @@ def load_data(dataset):
       Y[i] = instance["quality"]
       i += 1
     X = normalize(X)
-    Y = np.where(Y < 5, 1, -1)
+    Y = np.where(Y < 6, 1, -1)
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3)
     return (X_train, X_test, Y_train, Y_test)
 
